@@ -1,0 +1,177 @@
+---
+title: "RCode"
+author: "Jacob Gorham Wilson Neira, Julie Jin"
+date: "2023-05-12"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r}
+#Import libraries
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+
+#Import spreadsheet data from a CSV file
+data <- read_csv("490U Data - Sheet1.csv")
+
+#Some summary statistics before plotting
+data_summary <- data %>%
+  summarise_all(mean, na.rm = TRUE)
+print(data_summary)
+```
+
+
+
+```{r}
+# Calculating averages
+avg_times <- data %>%
+  summarise(across(starts_with("SpotifyFindSong"), mean, na.rm = TRUE), 
+            across(starts_with("YouTubeFindSong"), mean, na.rm = TRUE))
+
+avg_difficulty <- data %>%
+  summarise(across(starts_with("SpotifyFindSongDifficulty"), mean, na.rm = TRUE), 
+            across(starts_with("YouTubeFindSongDifficulty"), mean, na.rm = TRUE))
+
+
+
+
+# Bar chart for average times
+#avg_times %>%
+#  gather(key = "Task", value = "Average Time") %>%
+#  ggplot(aes(x = Task, y = `Average Time`, fill = Task)) +
+#  geom_bar(stat = "identity", position = "dodge") +
+#  labs(title = "Average Time for Each Task",
+#       x = "Task",
+#       y = "Average Time (s)",
+#       fill = "Task") +
+#  theme_minimal()
+# Horizontal bar chart for average times
+avg_times %>%
+  gather(key = "Task", value = "Average Time") %>%
+  ggplot(aes(x = Task, y = `Average Time`, fill = Task)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Average Time for Each Task",
+       y = "Task",
+       x = "Average Time (s)",
+       fill = "Task") +
+  theme_minimal()
+
+
+
+
+
+
+# Bar chart for average difficulties
+avg_difficulty %>%
+  gather(key = "Task", value = "Average Difficulty") %>%
+  ggplot(aes(x = Task, y = `Average Difficulty`, fill = Task)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average Difficulty for Each Task",
+       x = "Task",
+       y = "Average Difficulty (Scale 1-5)",
+       fill = "Task") +
+  theme_minimal() +
+  guides(fill = FALSE)
+
+
+
+
+# Conducting a t-test
+t_test_result <- t.test(data$SpotifyFindSong, data$YouTubeFindSong)
+# Conducting a t-test
+t_test_result2 <- t.test(data$SpotifyFindSongDifficulty, data$YouTubeFindSongDifficulty)
+
+# Print the t-test result
+print(t_test_result)
+print(t_test_result2)
+mtcars_aov <- aov(SpotifyFindSong ~ YouTubeFindSong, data = data)
+mtcars_aov
+summary(mtcars_aov)
+mtcars_aov <- aov(SpotifyFindSongDifficulty ~ YouTubeFindSongDifficulty, data = data)
+mtcars_aov
+summary(mtcars_aov)
+```
+
+
+
+
+
+
+
+
+```{r}
+
+# Restructuring the data for Spotify and YouTube
+spotify_data <- data %>%
+  select(starts_with("SpotifyFindSong")) %>%
+  pivot_longer(everything(), names_to = "Task", values_to = "Time") %>%
+  mutate(App = "Spotify")
+
+youtube_data <- data %>%
+  select(starts_with("YouTubeFindSong")) %>%
+  pivot_longer(everything(), names_to = "Task", values_to = "Time") %>%
+  mutate(App = "YouTube")
+
+# Combining Spotify and YouTube data into one data frame
+combined_data <- bind_rows(spotify_data, youtube_data)
+
+# Calculating average times for Spotify and YouTube tasks
+avg_times <- combined_data %>%
+  group_by(App) %>%
+  summarise(`Average Time` = mean(Time, na.rm = TRUE))
+
+# Bar chart for average times
+avg_times %>%
+  ggplot(aes(x = App, y = `Average Time`, fill = App)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average Time for Each Task",
+       x = "App",
+       y = "Average Time (seconds)",
+       fill = "App") +
+  theme_minimal() +
+  guides(fill = FALSE)
+
+
+mtcars_aov <- aov(spotify_data ~ youtube_data, data = combined_data)
+mtcars_aov
+summary(mtcars_aov)
+
+```
+#Graph Plotting Time!
+```{r}
+#Boxplots for time taken to find a song on Spotify and YouTube
+ggplot(data, aes(x = factor(1), y = SpotifyFindSong)) +
+  geom_boxplot() +
+  labs(x = "", y = "Time (s)", title = "Time taken to find a song on Spotify") +
+  theme(axis.text.x = element_blank())
+ggplot(data, aes(x = factor(1), y = YouTubeFindSong)) +
+  geom_boxplot() +
+  labs(x = "", y = "Time (s)", title = "Time taken to find a song on YouTube") +
+  theme(axis.text.x = element_blank())
+
+#Scatter plots for years of experience vs time taken
+ggplot(data, aes(x = SpotifyYearsExperience, y = SpotifyFindSong)) +
+  geom_point() +
+  labs(x = "Years of Experience", y = "Time (s)", title = "Years of Experience on Spotify vs Time taken to find a song")
+ggplot(data, aes(x = YouTubeYearsExperience, y = YouTubeFindSong)) +
+  geom_point() +
+  labs(x = "Years of Experience", y = "Time (s)", title = "Years of Experience on YouTube vs Time taken to find a song")
+
+#Histograms for difficulty ratings
+ggplot(data, aes(x = SpotifyFindSongDifficulty)) +
+  geom_histogram(binwidth = 1) +
+  labs(x = "Difficulty Rating", y = "Frequency", title = "Difficulty Ratings for Finding a Song on Spotify")
+
+ggplot(data, aes(x = YouTubeFindSongDifficulty)) +
+  geom_histogram(binwidth = 1) +
+  labs(x = "Difficulty Rating", y = "Frequency", title = "Difficulty Ratings for Finding a Song on YouTube")
+```
